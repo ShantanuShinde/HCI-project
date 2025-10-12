@@ -19,6 +19,11 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data  # <-- This keeps database data
+    command: >
+      bash -c "
+      ollama pull llama2:13b &&
+      ollama serve
+      "
 
 volumes:
   pgdata:         # persistent named volume for Postgres
