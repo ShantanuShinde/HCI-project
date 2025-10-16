@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from post_moderator import PostModerator
@@ -14,13 +14,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/moderate/")
-def moderate(text: str):
+@app.post("/moderate")
+async def moderate(request: Request):
+    data = await request.json()
+    text = data.get("text", "")
     is_inappropriate = moderator.moderate(text)
     return {"inappropriate": is_inappropriate}
 
-@app.post("/add_pattern/")
-def add_pattern(pattern: str):
+@app.post("/report")
+async def report(request: Request):
+    data = await request.json()
+    pattern = data.get("text", "")
     moderator.add_inappropriate_pattern(pattern)
     return {"status": "Pattern added"}
 
