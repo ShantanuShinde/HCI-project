@@ -14,4 +14,4 @@
 2. Run following command in the **frontend** directory:
 > npm install
 3. Start the frontend by running the command:
-> npm start dev
+> npm run dev
