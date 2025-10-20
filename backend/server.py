@@ -28,5 +28,12 @@ async def report(request: Request):
     moderator.add_inappropriate_pattern(pattern)
     return {"status": "Pattern added"}
 
+@app.post("/report_appropriate")
+async def report_appropriate(request: Request):
+    data = await request.json()
+    pattern = data.get("text", "")
+    moderator.add_appropriate_pattern(pattern)
+    return {"status": "Pattern added"}
+
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)

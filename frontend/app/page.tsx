@@ -11,6 +11,7 @@ export type Message = {
   timestamp: Date
   status: "checking" | "approved" | "flagged"
   reported?: boolean
+  appealed?: boolean
 }
 
 export default function Home() {
@@ -65,6 +66,23 @@ export default function Home() {
     }
   }
 
+  const handleAppealMessage = async (messageId: string) => {
+    const message = messages.find((msg) => msg.id === messageId)
+    if (!message) return
+
+    try {
+      await fetch("/api/appeal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: message.text }),
+      })
+
+      setMessages((prev) => prev.map((msg) => (msg.id === messageId ? { ...msg, appealed: true } : msg)))
+    } catch (error) {
+      console.error("Appeal failed:", error)
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border bg-card px-6 py-4">
@@ -80,7 +98,7 @@ export default function Home() {
 
       <main className="flex flex-1 flex-col">
         <div className="mx-auto w-full max-w-4xl flex-1 px-6 py-6">
-          <MessageList messages={messages} onReport={handleReportMessage} />
+          <MessageList messages={messages} onReport={handleReportMessage} onAppeal={handleAppealMessage} />
         </div>
 
         <div className="border-t border-border bg-card px-6 py-4">

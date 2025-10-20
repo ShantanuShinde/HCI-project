@@ -2,15 +2,16 @@
 
 import type { Message } from "@/app/page"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, CheckCircle2, Loader2, Flag } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Loader2, Flag, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface MessageItemProps {
   message: Message
   onReport: (messageId: string) => void
+  onAppeal: (messageId: string) => void
 }
 
-export function MessageItem({ message, onReport }: MessageItemProps) {
+export function MessageItem({ message, onReport, onAppeal }: MessageItemProps) {
   const getStatusIcon = () => {
     switch (message.status) {
       case "checking":
@@ -53,11 +54,25 @@ export function MessageItem({ message, onReport }: MessageItemProps) {
           </div>
         </div>
 
+        {message.status === "flagged" && !message.appealed && (
+          <Button variant="ghost" size="sm" onClick={() => onAppeal(message.id)} className="shrink-0">
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            Appeal
+          </Button>
+        )}
+
         {message.status === "approved" && !message.reported && (
           <Button variant="ghost" size="sm" onClick={() => onReport(message.id)} className="shrink-0">
             <Flag className="mr-2 h-4 w-4" />
             Report
           </Button>
+        )}
+
+        {message.appealed && (
+          <div className="flex items-center gap-1.5 rounded-md bg-info/10 px-3 py-1.5 text-xs text-info-foreground">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Appealed
+          </div>
         )}
 
         {message.reported && (
