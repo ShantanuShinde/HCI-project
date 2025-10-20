@@ -9,13 +9,13 @@ class PostModerator:
     """
      A content moderator that uses a language model to evaluate text for appropriateness.
      The moderator can be updated with new patterns of inappropriate text to improve its accuracy.
-     Requires an Ollama server running locally with the specified model (default: "llama2") at the specified base URL.
+     Requires an Ollama server running locally with the specified model (default: "llama3.2:3b") at the specified base URL.
     """
-    def __init__(self, model_name: str = "llama2", base_url: str = "http://localhost:11434"):
+    def __init__(self, model_name: str = "llama3.2:3b", base_url: str = "http://localhost:11434"):
         """
         Initialize the PostModerator with a language model.
         Args:
-            model_name (str): The name of the language model to use (default: "llama2").
+            model_name (str): The name of the language model to use (default: "llama3.2:3b").
             base_url (str): The base URL of the Ollama server (default: "http://localhost:11434").
         """
         self._config = {"configurable": {"thread_id": "1"}}

@@ -6,7 +6,9 @@
 3. Install and run **Docker Desktop**.
 4. Create and start the docker container with ollama server running the command in the **backend** directory:
 > docker-compose up -d
-5. Start the backend server by running the command:
+5. Pull the **llama3.2** model by running the following command:
+> docker exec ollama ollama pull llama3.2:3b
+6. Start the backend server by running the command:
 > python server.py
 
 ## Running Frontend
