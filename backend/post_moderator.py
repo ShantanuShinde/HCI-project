@@ -47,7 +47,6 @@ class PostModerator:
         Returns:
             True if the text is inappropriate, False otherwise.
         """
-        print(self._system_prompt)
         prompt = f"Text: {text}"
         for event in self.react_agent.stream({"messages": [{"role": "user", "content": prompt}]}, config=self._config, stream_mode="values"):
             if len(event["messages"][-1].response_metadata) != 0:
