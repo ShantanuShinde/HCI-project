@@ -24,7 +24,6 @@ class PostModerator:
             "You need to flag the text only if it contains hate speech against any group and minorities, including but not limited to: LGBTQ+, racial minorities, disabled people, religious minorities, etc.\n"
             "You should also flag text with inappropriate content, including but not limited to: explicit sexual content, extreme violence, self-harm, etc.\n"
             "DO NOT give any responses other than 'YES' or 'NO'. Not explanation for the response.\n"
-            "Also if user provides you with examples of inappropriate or appropriate text, update your moderation criteria accordingly."
         )
         self._system_prompt = self._base_system_prompt
 
@@ -39,7 +38,8 @@ class PostModerator:
         self.sqlite_saver = SqliteSaver(conn)
 
         self.react_agent = create_react_agent(model=self.model, tools=[], prompt=self.system_prompt, checkpointer=self.sqlite_saver)
-    
+        self.react_agent_unfiltered = create_react_agent(model=self.model, tools=[], prompt=self._base_system_prompt) 
+
     @property
     def system_prompt(self) -> str:
         return self._system_prompt
@@ -73,6 +73,7 @@ class PostModerator:
     
     def _construct_system_prompt(self) -> str:
         prompt = self._base_system_prompt
+        prompt += "\nAlso if user provides you with examples of inappropriate or appropriate text, update your moderation criteria accordingly."
         if len(self.to_flag) > 0:
             texts_to_flag = "\n".join(self.to_flag)
             prompt += f"\nFrom now on, also flag as inappropriate any text similar to: \n{texts_to_flag}"
@@ -81,20 +82,22 @@ class PostModerator:
             prompt += f"\nFrom now on, do NOT flag as inappropriate any text similar to: \n{texts_to_not_flag}"
         return prompt
 
-    def moderate(self, text: str) -> bool:
+    def moderate(self, text: str, filtered: bool = True) -> bool:
         """
         Evaluate the given text for appropriateness.
         Args:
             text (str): The text to evaluate.
+            filtered (bool): Whether to use the filtered agent with updated patterns.
         Returns:
             True if the text is inappropriate, False otherwise.
         """
         prompt = f"Text: {text}"
-        for event in self.react_agent.stream({"messages": [{"role": "user", "content": prompt}]}, config=self._config, stream_mode="values"):
+        agent = self.react_agent if filtered else self.react_agent_unfiltered
+        for event in agent.stream({"messages": [{"role": "user", "content": prompt}]}, config=self._config, stream_mode="values"):
             if len(event["messages"][-1].response_metadata) != 0:
                 return event["messages"][-1].content == "YES"
         return False
-    
+
     def add_inappropriate_pattern(self, pattern: str):
         """
         Add a new pattern or example of inappropriate text. The moderator will flag similar text as inappropriate from now on.

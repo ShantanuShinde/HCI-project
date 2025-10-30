@@ -4,6 +4,7 @@ import { useState } from "react"
 import { MessageList } from "@/components/message-list"
 import { MessageInput } from "@/components/message-input"
 import { Flag } from "lucide-react"
+import ToggleButton from "@/components/toggle-button"
 
 export type Message = {
   id: string
@@ -27,9 +28,11 @@ export default function Home() {
 
     setMessages((prev) => [...prev, newMessage])
 
+    const api = isFiltered ? "/api/moderate" : "/api/moderate_unfiltered";
+
     try {
       // Call moderation API
-      const response = await fetch("/api/moderate", {
+      const response = await fetch(api, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
@@ -83,6 +86,13 @@ export default function Home() {
     }
   }
 
+  
+  const [isFiltered, setIsFiltered] = useState(false)
+  
+  const handleOnToggleChange = (isFiltered: boolean) => {
+    setIsFiltered(isFiltered);
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-border bg-card px-6 py-4">
@@ -104,6 +114,7 @@ export default function Home() {
         <div className="border-t border-border bg-card px-6 py-4">
           <div className="mx-auto max-w-4xl">
             <MessageInput onSend={handleSendMessage} />
+            <ToggleButton onToggle={handleOnToggleChange} />
           </div>
         </div>
       </main>

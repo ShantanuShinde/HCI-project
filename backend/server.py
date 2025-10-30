@@ -21,6 +21,13 @@ async def moderate(request: Request):
     is_inappropriate = moderator.moderate(text)
     return {"inappropriate": is_inappropriate}
 
+@app.post("/moderate_unfiltered")
+async def moderate_unfiltered(request: Request):
+    data = await request.json()
+    text = data.get("text", "")
+    is_inappropriate = moderator.moderate(text, filtered=False)
+    return {"inappropriate": is_inappropriate}
+
 @app.post("/report")
 async def report(request: Request):
     data = await request.json()
