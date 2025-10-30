@@ -1,8 +1,8 @@
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
+from sentence_transformers import SentenceTransformer, util
 
 
 class PostModerator:
@@ -28,16 +28,58 @@ class PostModerator:
         )
         self._system_prompt = self._base_system_prompt
 
+        self.to_flag = set()
+        self.not_flag = set()
+
+        self._sentence_transformer = SentenceTransformer('all-MiniLM-L6-v2')
+
         self.model = ChatOllama(model=model_name, temperature=0, base_url=base_url)
 
         conn = sqlite3.connect("checkpoints.sqlite", check_same_thread=False)
         self.sqlite_saver = SqliteSaver(conn)
 
-        self.react_agent = create_react_agent(model=self.model, tools=[], prompt=self._system_prompt, checkpointer=self.sqlite_saver)
+        self.react_agent = create_react_agent(model=self.model, tools=[], prompt=self.system_prompt, checkpointer=self.sqlite_saver)
     
     @property
     def system_prompt(self) -> str:
         return self._system_prompt
+
+    def _get_sentece_similarity(self, text1: str, text2: str) -> float:
+        """
+        Calculate the cosine similarity between two texts using sentence embeddings.
+        Args:
+            text1 (str): The first text.
+            text2 (str): The second text.
+        Returns:
+            Cosine similarity score between the two texts.
+        """
+        embeddings1 = self._sentence_transformer.encode(text1, convert_to_tensor=True)
+        embeddings2 = self._sentence_transformer.encode(text2, convert_to_tensor=True)
+        similarity = util.pytorch_cos_sim(embeddings1, embeddings2)
+        return similarity.item()
+    
+    def _find_similar_texts(self, new_pattern: str, patterns: set, threshold: float = 0.6) -> bool:
+        """
+        Find similar texts in the given set of patterns.
+        Args:
+            new_pattern (str): The new pattern to compare against existing patterns.
+            patterns (set): A set of existing patterns to compare with.
+            threshold (float): The similarity threshold (default: 0.6).
+        Returns:
+            List of patterns that are similar to the new pattern.
+        """
+
+        return [pattern for pattern in patterns if self._get_sentece_similarity(new_pattern, pattern) >= threshold]
+    
+    def _construct_system_prompt(self) -> str:
+        prompt = self._base_system_prompt
+        if len(self.to_flag) > 0:
+            texts_to_flag = "\n".join(self.to_flag)
+            prompt += f"\nFrom now on, also flag as inappropriate any text similar to: \n{texts_to_flag}"
+        if len(self.not_flag) > 0:
+            texts_to_not_flag = "\n".join(self.not_flag)
+            prompt += f"\nFrom now on, do NOT flag as inappropriate any text similar to: \n{texts_to_not_flag}"
+        return prompt
 
     def moderate(self, text: str) -> bool:
         """
@@ -59,7 +101,11 @@ class PostModerator:
         Args:
             pattern (str): A new example or pattern of inappropriate text.
         """
-        self._system_prompt += f"\nFrom now on, also flag as inappropriate any text similar to as well: '{pattern}'"
+        self.to_flag.add(pattern)
+        similar_texts = self._find_similar_texts(pattern, self.not_flag)
+        self.not_flag.difference_update(similar_texts)
+
+        self._system_prompt = self._construct_system_prompt()
         self.react_agent = create_react_agent(model=self.model, tools=[], prompt=self._system_prompt, checkpointer=self.sqlite_saver)
 
     def add_appropriate_pattern(self, pattern: str):
@@ -68,7 +114,11 @@ class PostModerator:
         Args:
             pattern (str): A new example or pattern of appropriate text.
         """
-        self._system_prompt += f"\nFrom now on, do NOT flag as inappropriate any text similar to: '{pattern}'"
+        self.not_flag.add(pattern)
+        similar_texts = self._find_similar_texts(pattern, self.to_flag)
+        self.to_flag.difference_update(similar_texts)
+
+        self._system_prompt = self._construct_system_prompt()
         self.react_agent = create_react_agent(model=self.model, tools=[], prompt=self._system_prompt, checkpointer=self.sqlite_saver)
 
 if __name__ == "__main__":
