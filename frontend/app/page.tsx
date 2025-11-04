@@ -114,7 +114,7 @@ export default function Home() {
         <div className="border-t border-border bg-card px-6 py-4">
           <div className="mx-auto max-w-4xl">
             <MessageInput onSend={handleSendMessage} />
-            <ToggleButton onToggle={handleOnToggleChange} />
+            <ToggleButton isFiltered={isFiltered} onToggle={handleOnToggleChange} />
           </div>
         </div>
       </main>
